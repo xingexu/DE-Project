@@ -86,7 +86,7 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4 text-black">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center items-center space-x-2 mb-4">
@@ -94,14 +94,14 @@ export default function Signup() {
             <Train className="h-6 w-6 text-primary-500" />
             <Car className="h-6 w-6 text-primary-400" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Account</h1>
-          <p className="text-gray-600">Sign up to unlock all features and start earning rewards!</p>
+          <h1 className="text-3xl font-bold text-black mb-2">Create Your Account</h1>
+          <p className="text-black">Sign up to unlock all features and start earning rewards!</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-xl p-8 text-black">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Field */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+              <label htmlFor="name" className="block text-sm font-medium text-black mb-2">Full Name</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600" />
                 <input
@@ -110,7 +110,7 @@ export default function Signup() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
                   placeholder="Enter your full name"
                   required
                 />
@@ -118,7 +118,7 @@ export default function Signup() {
             </div>
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+              <label htmlFor="email" className="block text-sm font-medium text-black mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600" />
                 <input
@@ -127,7 +127,7 @@ export default function Signup() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
                   placeholder="Enter your email"
                   required
                 />
@@ -135,7 +135,7 @@ export default function Signup() {
             </div>
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-black mb-2">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600" />
                 <input
@@ -144,7 +144,7 @@ export default function Signup() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
                   placeholder="Create a password"
                   required
                 />
@@ -159,7 +159,7 @@ export default function Signup() {
             </div>
             {/* Confirm Password Field */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-black mb-2">Confirm Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600" />
                 <input
@@ -168,7 +168,7 @@ export default function Signup() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
                   placeholder="Confirm your password"
                   required
                 />
@@ -183,7 +183,7 @@ export default function Signup() {
             </div>
             {/* Avatar Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Choose Your Avatar</label>
+              <label className="block text-sm font-medium text-black mb-3">Choose Your Avatar</label>
               <div className="grid grid-cols-6 gap-3">
                 {avatars.map((avatar, index) => (
                   <button
@@ -199,7 +199,7 @@ export default function Signup() {
             </div>
             {/* Account Type Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Choose Account Type</label>
+              <label className="block text-sm font-medium text-black mb-3">Choose Account Type</label>
               <div className="grid grid-cols-1 gap-3">
                 {/* Free Account Option */}
                 <button
@@ -215,8 +215,8 @@ export default function Signup() {
                     <div className="flex items-center space-x-3">
                       <Star className="h-6 w-6 text-gray-500" />
                       <div>
-                        <div className="font-semibold text-gray-900">Free Account</div>
-                        <div className="text-sm text-gray-600">Basic features • 1000 bonus points</div>
+                        <div className="font-semibold text-black">Free Account</div>
+                        <div className="text-sm text-black">Basic features • 1000 bonus points</div>
                       </div>
                     </div>
                     <div className="text-sm font-medium text-gray-500">$0/month</div>
@@ -237,8 +237,8 @@ export default function Signup() {
                     <div className="flex items-center space-x-3">
                       <Crown className="h-6 w-6 text-yellow-500" />
                       <div>
-                        <div className="font-semibold text-gray-900">Premium Account</div>
-                        <div className="text-sm text-gray-600">50% extra XP • Exclusive rewards • 2000 bonus points</div>
+                        <div className="font-semibold text-black">Premium Account</div>
+                        <div className="text-sm text-black">50% extra XP • Exclusive rewards • 2000 bonus points</div>
                       </div>
                     </div>
                     <div className="text-sm font-medium text-yellow-600">$2.99/month</div>
@@ -280,7 +280,7 @@ export default function Signup() {
           </form>
           {/* Sign In Link */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-black">
               Already have an account?{' '}
               <button
                 type="button"
