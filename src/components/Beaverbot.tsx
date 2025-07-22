@@ -318,9 +318,9 @@ export default function Beaverbot({ onClose }: BeaverbotProps) {
       return "I can help you with route information! 🚋 Which specific route are you interested in? You can ask about routes like 501 Queen, 504 King, 510 Spadina, or 509 Harbourfront."
     }
     
-    // Points and rewards
+    // Taubits and rewards
     if (message.includes('point') || message.includes('reward') || message.includes('earn')) {
-      return "🎁 Points & Rewards:\n\n• Earn points by rating your transit experience\n• Complete trips to gain XP and level up\n• Redeem points for exclusive rewards\n• Premium users get bonus points\n\nCheck the Rewards page for current offers!"
+      return "🎁 Taubits & Rewards:\n\n• Earn taubits by rating your transit experience\n• Complete trips to gain XP and level up\n• Redeem taubits for exclusive rewards\n• Premium users get bonus taubits\n\nCheck the Rewards page for current offers!"
     }
     
     // App features

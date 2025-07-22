@@ -191,7 +191,7 @@ export default function Premium() {
               <p className="text-sm text-gray-600 mb-2">{reward.description}</p>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
-                  {reward.pointsCost} points
+                  {reward.pointsCost} taubits
                 </span>
                 {!state.user.isPremium && (
                   <Crown className="h-4 w-4 text-yellow-500" />

@@ -11,14 +11,14 @@ interface FAQItem {
 const faqData: FAQItem[] = [
   {
     id: '1',
-    question: 'How do I earn points?',
-    answer: 'You earn points by using transit services tracked through the app. Each trip earns you points based on distance and duration. Premium users earn 2x points!',
+    question: 'How do I earn taubits?',
+    answer: 'You earn taubits by using transit services tracked through the app. Each trip earns you taubits based on distance and duration. Premium users earn 2x taubits!',
     category: 'rewards'
   },
   {
     id: '2',
     question: 'How do I redeem rewards?',
-    answer: 'Go to the Rewards page and browse available items. Click "Redeem" on any reward you want. Make sure you have enough points!',
+    answer: 'Go to the Rewards page and browse available items. Click "Redeem" on any reward you want. Make sure you have enough taubits!',
     category: 'rewards'
   },
   {
@@ -42,7 +42,7 @@ const faqData: FAQItem[] = [
   {
     id: '6',
     question: 'How do I change my avatar?',
-    answer: 'Go to Profile → Collection → Avatars. You can choose from emoji avatars or upload your own photo. Some avatars require points to unlock.',
+    answer: 'Go to Profile → Collection → Avatars. You can choose from emoji avatars or upload your own photo. Some avatars require taubits to unlock.',
     category: 'general'
   },
   {

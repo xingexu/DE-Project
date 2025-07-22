@@ -113,7 +113,7 @@ export default function Layout() {
                 <div className="flex items-center space-x-2">
                   <Sparkles className="h-4 w-4 text-yellow-500" />
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    {state.user?.points || 0} pts
+                    {state.user?.points || 0} taubits
                   </span>
                 </div>
               </div>

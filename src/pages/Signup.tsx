@@ -21,7 +21,6 @@ export default function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Redirect if already logged in
   useEffect(() => {
     if (state.user && state.user.id) {
       navigate('/')

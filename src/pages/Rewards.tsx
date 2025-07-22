@@ -44,7 +44,7 @@ export default function Rewards() {
           <div className="text-4xl font-bold text-primary-600 mb-2">
             {state.user.points}
           </div>
-          <div className="text-gray-600 dark:text-gray-400 mb-4">Total Points</div>
+          <div className="text-gray-600 dark:text-gray-400 mb-4">Total Taubits</div>
           <div className="flex items-center justify-center space-x-4 text-sm">
             <div className="flex items-center space-x-1">
               <TrendingUp className="h-4 w-4 text-green-600" />
@@ -99,7 +99,7 @@ export default function Rewards() {
                 
                 <div className="text-right">
                   <div className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                    {reward.pointsCost} pts
+                    {reward.pointsCost} taubits
                   </div>
                   <button
                     onClick={() => handleRedeemReward(reward.id)}

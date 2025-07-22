@@ -105,7 +105,7 @@ export default function Home() {
               !
             </h2>
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              Ready to earn points and explore the city?
+              Ready to earn taubits and explore the city?
             </p>
           </div>
           
@@ -158,7 +158,7 @@ export default function Home() {
               {user.points || 0}
             </div>
           </div>
-          <div className="text-sm text-slate-600 dark:text-slate-400">Total Points</div>
+          <div className="text-sm text-slate-600 dark:text-slate-400">Total Taubits</div>
           <div className="text-xs text-green-600 dark:text-green-400 mt-1">+{user.weeklyPoints || 0} this week</div>
         </div>
         
