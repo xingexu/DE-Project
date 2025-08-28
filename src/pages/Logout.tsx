@@ -8,29 +8,8 @@ export default function Logout() {
   const { dispatch } = useTransit()
 
   useEffect(() => {
-    // Clear user data with all required fields
-    dispatch({ 
-      type: 'SET_USER',
-      payload: {
-        id: '',
-        name: '',
-        avatar: '',
-        points: 0,
-        isTracking: false,
-        friends: [],
-        parentTracking: false,
-        level: 1,
-        experience: 0,
-        weeklyPoints: 0,
-        totalTrips: 0,
-        totalDistance: 0,
-        totalTime: 0,
-        joinDate: new Date(),
-      }
-    })
-    
-    // Clear localStorage
-    localStorage.removeItem('transitUser')
+    // Use the LOGOUT action to clear all data
+    dispatch({ type: 'LOGOUT' })
     
     toast.success('Logged out successfully!')
     navigate('/login')

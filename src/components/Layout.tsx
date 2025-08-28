@@ -63,9 +63,9 @@ export default function Layout() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="text-center">
+        <div className="text-center fade-in-up">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-6 neon-glow"></div>
             <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-t-indigo-400 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
           </div>
           <p className="text-slate-600 font-medium dark:text-slate-300">Loading your transit experience...</p>
@@ -96,9 +96,9 @@ export default function Layout() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <div className="relative">
-                  <Bus className="h-8 w-8 text-blue-600" />
-                  <Train className="h-6 w-6 text-indigo-500 absolute -top-1 -right-1" />
-                  <Car className="h-5 w-5 text-purple-400 absolute -bottom-1 -right-1" />
+                  <Bus className="h-8 w-8 text-blue-600 neon-glow" />
+                  <Train className="h-6 w-6 text-indigo-500 absolute -top-1 -right-1 neon-glow" />
+                  <Car className="h-5 w-5 text-purple-400 absolute -bottom-1 -right-1 neon-glow" />
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gradient">transportaution</h1>
@@ -109,21 +109,21 @@ export default function Layout() {
             
             <div className="flex items-center space-x-4">
               <ThemeToggle />
-              <div className="glass px-4 py-2 rounded-xl">
+              <div className="glass px-4 py-2 rounded-xl hover-lift">
                 <div className="flex items-center space-x-2">
-                  <Sparkles className="h-4 w-4 text-yellow-500" />
+                  <Sparkles className="h-4 w-4 text-yellow-500 neon-glow" />
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                     {state.user?.points || 0} taubits
                   </span>
                 </div>
               </div>
               <div className="relative">
-                <div className="text-3xl hover:scale-110 transition-transform cursor-pointer">
+                <div className="text-3xl hover:scale-110 transition-transform duration-300 cursor-pointer hover-lift">
                   {state.user?.avatar || '👤'}
                 </div>
                 {state.user?.isPremium && (
                   <div className="absolute -top-1 -right-1">
-                    <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse"></div>
+                    <div className="w-3 h-3 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full animate-pulse neon-glow"></div>
                   </div>
                 )}
               </div>
@@ -140,12 +140,12 @@ export default function Layout() {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/30 dark:border-slate-700/30 px-4 py-3 z-50">
         <div className="flex justify-around max-w-md mx-auto">
-          {navItems.map((item) => (
+          {navItems.map((item, index) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `nav-item ${isActive ? 'nav-item-active' : ''}`
+                `nav-item ${isActive ? 'nav-item-active' : ''} stagger-${index + 1}`
               }
             >
               <item.icon className="h-6 w-6" />

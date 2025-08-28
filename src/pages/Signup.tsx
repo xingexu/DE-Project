@@ -51,6 +51,8 @@ export default function Signup() {
       const newUser = {
         id: Date.now().toString(),
         name: formData.name,
+        email: formData.email,
+        password: formData.password,
         points: accountType === 'premium' ? 2000 : 1000, // Bonus points for new users
         avatar: selectedAvatar,
         isTracking: false,
@@ -71,8 +73,12 @@ export default function Signup() {
           advancedTracking: accountType === 'premium',
           prioritySupport: accountType === 'premium',
         },
+        locationSharing: false,
+        friendRequests: true,
+        chatEnabled: true,
+        messageRequests: false,
       }
-      dispatch({ type: 'SET_USER', payload: newUser })
+      dispatch({ type: 'CREATE_ACCOUNT', payload: newUser })
       toast.success(accountType === 'premium' ? 'Premium account created! Welcome to Transit Rewards!' : 'Account created! Welcome to Transit Rewards!')
       navigate('/')
       setIsLoading(false)
@@ -86,20 +92,20 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4 text-black">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
+      <div className="max-w-md w-full fade-in-up">
+        <div className="text-center mb-8 stagger-1">
           <div className="flex justify-center items-center space-x-2 mb-4">
-            <Bus className="h-8 w-8 text-primary-600" />
-            <Train className="h-6 w-6 text-primary-500" />
-            <Car className="h-6 w-6 text-primary-400" />
+            <Bus className="h-8 w-8 text-primary-600 neon-glow" />
+            <Train className="h-6 w-6 text-primary-500 neon-glow" />
+            <Car className="h-6 w-6 text-primary-400 neon-glow" />
           </div>
           <h1 className="text-3xl font-bold text-black mb-2">Create Your Account</h1>
           <p className="text-black">Sign up to unlock all features and start earning rewards!</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-black">
+        <div className="glass-enhanced p-8 text-black">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Field */}
-            <div>
+            <div className="stagger-2">
               <label htmlFor="name" className="block text-sm font-medium text-black mb-2">Full Name</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600" />
@@ -109,14 +115,14 @@ export default function Signup() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
+                  className="w-full pl-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
                   placeholder="Enter your full name"
                   required
                 />
               </div>
             </div>
             {/* Email Field */}
-            <div>
+            <div className="stagger-3">
               <label htmlFor="email" className="block text-sm font-medium text-black mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-600" />
@@ -126,7 +132,7 @@ export default function Signup() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
+                  className="w-full pl-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
                   placeholder="Enter your email"
                   required
                 />
@@ -265,7 +271,7 @@ export default function Signup() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>

@@ -52,10 +52,17 @@ export default function Home() {
 
     setIsTapping(true)
     setTimeout(() => {
-      const pointsEarned = Math.floor(Math.random() * 50) + 10
-      dispatch({ type: 'STOP_TRACKING' })
-      dispatch({ type: 'ADD_POINTS', payload: pointsEarned })
-      toast.success(`Tap out successful! Earned ${pointsEarned} points!`)
+      // Simulate trip data - in real app this would come from GPS tracking
+      const distance = Math.random() * 10 + 1 // 1-11 km
+      const time = Math.random() * 30 + 10 // 10-40 minutes
+      
+      dispatch({ type: 'STOP_TRACKING', payload: { distance, time } })
+      
+      // Calculate taubits: each km = 10 taubits, each minute = 10 taubits
+      const taubitsEarned = Math.floor(distance * 10) + Math.floor(time * 10)
+      dispatch({ type: 'ADD_POINTS', payload: taubitsEarned })
+      
+      toast.success(`Tap out successful! Trip: ${distance.toFixed(1)}km, ${time.toFixed(0)}min. Earned ${taubitsEarned} taubits!`)
       setIsTapping(false)
     }, 1000)
   }
@@ -87,7 +94,7 @@ export default function Home() {
   return (
     <div className="space-y-6">
       {/* Hero Section */}
-      <div className="card-glass">
+      <div className="card-glass fade-in-up stagger-1">
         <div className="text-center">
           <div className="mb-4">
             <div className="text-4xl mb-2 float">
@@ -151,7 +158,7 @@ export default function Home() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="card text-center hover:scale-105 transition-transform">
+        <div className="card text-center hover-lift stagger-2">
           <div className="flex items-center justify-center space-x-2 mb-2">
             <Sparkles className="h-5 w-5 text-yellow-500" />
             <div className="text-2xl font-bold text-gradient">
@@ -162,7 +169,7 @@ export default function Home() {
           <div className="text-xs text-green-600 dark:text-green-400 mt-1">+{user.weeklyPoints || 0} this week</div>
         </div>
         
-        <div className="card text-center hover:scale-105 transition-transform">
+        <div className="card text-center hover-lift stagger-3">
           <div className="flex items-center justify-center space-x-2 mb-2">
             <Star className="h-5 w-5 text-yellow-500" />
             <div className="text-2xl font-bold text-gradient">
@@ -175,7 +182,7 @@ export default function Home() {
       </div>
 
       {/* Level Progress */}
-      <div className="card">
+      <div className="card stagger-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Level Progress</h3>
           <div className="flex items-center space-x-2">
@@ -200,7 +207,7 @@ export default function Home() {
       </div>
 
       {/* Nearby Transit Lines */}
-      <div className="card">
+      <div className="card stagger-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center">
             <Navigation className="h-5 w-5 mr-2 text-blue-600" />
@@ -219,7 +226,7 @@ export default function Home() {
             <div 
               key={line.id} 
               onClick={() => handleLineClick(line)}
-              className="flex items-center justify-between p-4 glass rounded-xl hover:bg-white/90 cursor-pointer transition-all duration-300 hover:scale-105"
+              className="flex items-center justify-between p-4 glass rounded-xl hover:bg-white/90 cursor-pointer transition-all duration-500 hover:scale-105 hover-lift"
             >
               <div className="flex items-center space-x-3">
                 <div className="text-2xl">
@@ -254,9 +261,9 @@ export default function Home() {
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/transit-lines')}
-            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-300 hover:scale-105 group"
+            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-500 hover:scale-105 group hover-lift"
           >
-            <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl mb-3 group-hover:scale-110 transition-transform neon-glow">
               <MapPin className="h-6 w-6 text-white" />
             </div>
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Transit Lines</span>
@@ -264,9 +271,9 @@ export default function Home() {
           
           <button 
             onClick={() => navigate('/rewards')}
-            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-300 hover:scale-105 group"
+            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-500 hover:scale-105 group hover-lift"
           >
-            <div className="p-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl mb-3 group-hover:scale-110 transition-transform neon-glow">
               <Gift className="h-6 w-6 text-white" />
             </div>
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Rewards</span>
@@ -274,9 +281,9 @@ export default function Home() {
           
           <button 
             onClick={() => navigate('/social')}
-            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-300 hover:scale-105 group"
+            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-500 hover:scale-105 group hover-lift"
           >
-            <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl mb-3 group-hover:scale-110 transition-transform neon-glow">
               <Users className="h-6 w-6 text-white" />
             </div>
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Social</span>
@@ -284,9 +291,9 @@ export default function Home() {
           
           <button 
             onClick={() => navigate('/profile')}
-            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-300 hover:scale-105 group"
+            className="flex flex-col items-center p-4 glass rounded-xl hover:bg-white/90 transition-all duration-500 hover:scale-105 group hover-lift"
           >
-            <div className="p-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl mb-3 group-hover:scale-110 transition-transform">
+            <div className="p-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl mb-3 group-hover:scale-110 transition-transform neon-glow">
               <TrendingUp className="h-6 w-6 text-white" />
             </div>
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Stats</span>

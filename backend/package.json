@@ -1,0 +1,38 @@
+{
+  "name": "transit-rewards-backend",
+  "version": "1.0.0",
+  "description": "Backend server for Transit Rewards app with PostgreSQL",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "db:migrate": "node src/config/migrate.js",
+    "db:seed": "node src/config/seed.js"
+  },
+  "keywords": ["transit", "rewards", "postgresql", "express", "nodejs"],
+  "author": "Transit Rewards Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "dotenv": "^16.3.1",
+    "joi": "^17.11.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

@@ -4,6 +4,8 @@ import React, { createContext, useContext, useReducer, ReactNode, useEffect } fr
 export interface User {
   id: string
   name: string
+  email: string
+  password: string
   points: number
   avatar: string
   isTracking: boolean
@@ -70,7 +72,7 @@ export interface TransitState {
 // Actions
 type TransitAction =
   | { type: 'START_TRACKING' }
-  | { type: 'STOP_TRACKING' }
+  | { type: 'STOP_TRACKING'; payload: { distance: number; time: number } }
   | { type: 'UPDATE_LOCATION'; payload: { lat: number; lng: number } }
   | { type: 'ADD_POINTS'; payload: number }
   | { type: 'REDEEM_REWARD'; payload: string }
@@ -80,6 +82,8 @@ type TransitAction =
   | { type: 'SET_USER'; payload: { 
       id: string; 
       name: string; 
+      email: string;
+      password: string;
       avatar: string; 
       points: number; 
       isTracking: boolean; 
@@ -105,14 +109,18 @@ type TransitAction =
       chatEnabled?: boolean;
       messageRequests?: boolean;
     } }
+  | { type: 'LOGIN'; payload: { email: string; password: string } }
+  | { type: 'LOGOUT' }
   | { type: 'ADD_EXPERIENCE'; payload: number }
   | { type: 'UPDATE_WEEKLY_STATS'; payload: { points: number; trips: number; distance: number; time: number } }
   | { type: 'UPGRADE_TO_PREMIUM'; payload: { expiryDate: Date } }
   | { type: 'CANCEL_PREMIUM' }
   | { type: 'CREATE_ACCOUNT'; payload: { 
       id: string; 
-      name: string; 
-      avatar: string; 
+      name: string;
+      email: string;
+      password: string;
+      avatar: string;
       points: number;
       isTracking: boolean;
       friends: string[];
@@ -132,6 +140,10 @@ type TransitAction =
         advancedTracking: boolean;
         prioritySupport: boolean;
       };
+      locationSharing?: boolean;
+      friendRequests?: boolean;
+      chatEnabled?: boolean;
+      messageRequests?: boolean;
     } }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' }
 
@@ -166,6 +178,43 @@ const saveUserToStorage = (user: User) => {
   }
 }
 
+// Helper functions for authentication
+const saveCredentialsToStorage = (email: string, password: string) => {
+  try {
+    localStorage.setItem('transitCredentials', JSON.stringify({ email, password }))
+  } catch (error) {
+    console.error('Failed to save credentials to localStorage:', error)
+  }
+}
+
+const loadCredentialsFromStorage = (): { email: string; password: string } | null => {
+  try {
+    const credentials = localStorage.getItem('transitCredentials')
+    if (credentials) {
+      return JSON.parse(credentials)
+    }
+  } catch (error) {
+    console.error('Failed to load credentials from localStorage:', error)
+  }
+  return null
+}
+
+const clearCredentialsFromStorage = () => {
+  try {
+    localStorage.removeItem('transitCredentials')
+  } catch (error) {
+    console.error('Failed to clear credentials from localStorage:', error)
+  }
+}
+
+// Helper function to calculate taubits based on distance and time
+const calculateTaubits = (distance: number, time: number): number => {
+  // Each kilometer = 10 taubits, each minute = 10 taubits
+  const distancePoints = Math.floor(distance * 10)
+  const timePoints = Math.floor(time * 10)
+  return distancePoints + timePoints
+}
+
 const loadUserFromStorage = (): User | null => {
   try {
     const userData = localStorage.getItem('transitUser')
@@ -183,6 +232,8 @@ const loadUserFromStorage = (): User | null => {
       return {
         id: user.id || '',
         name: user.name || 'User',
+        email: user.email || '',
+        password: user.password || '',
         points: user.points || 0,
         avatar: user.avatar || '👤',
         isTracking: user.isTracking || false,
@@ -244,6 +295,8 @@ const getInitialState = (): TransitState => {
     user: storedUser || {
       id: '',
       name: 'User',
+      email: '',
+      password: '',
       points: 0,
       avatar: '👤',
       isTracking: false,
@@ -363,11 +416,21 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
         user: { ...state.user, isTracking: true },
       }
     case 'STOP_TRACKING':
+      const { distance, time } = action.payload
+      const taubitsEarned = calculateTaubits(distance, time)
+      
       return {
         ...state,
         isTracking: false,
         trackingStartTime: undefined,
-        user: { ...state.user, isTracking: false },
+        user: { 
+          ...state.user, 
+          isTracking: false,
+          totalTrips: state.user.totalTrips + 1,
+          totalDistance: state.user.totalDistance + distance,
+          totalTime: state.user.totalTime + time,
+        },
+        currentDistance: 0,
       }
     case 'UPDATE_LOCATION':
       return {
@@ -430,6 +493,54 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
         ...state,
         user: action.payload,
       }
+    case 'LOGIN':
+      // Find user by email and password
+      const storedUsers = JSON.parse(localStorage.getItem('transitUsers') || '[]')
+      const user = storedUsers.find((u: User) => 
+        u.email === action.payload.email && u.password === action.payload.password
+      )
+      
+      if (user) {
+        // Save credentials for auto-login
+        saveCredentialsToStorage(action.payload.email, action.payload.password)
+        return {
+          ...state,
+          user: user,
+        }
+      }
+      return state
+    case 'LOGOUT':
+      clearCredentialsFromStorage()
+      return {
+        ...state,
+        user: {
+          id: '',
+          name: 'User',
+          email: '',
+          password: '',
+          points: 0,
+          avatar: '👤',
+          isTracking: false,
+          currentLocation: undefined,
+          friends: [],
+          parentTracking: false,
+          level: 1,
+          experience: 0,
+          weeklyPoints: 0,
+          totalTrips: 0,
+          totalDistance: 0,
+          totalTime: 0,
+          joinDate: new Date(),
+          isPremium: false,
+          premiumExpiry: undefined,
+          premiumFeatures: {
+            extraXPGain: false,
+            specialRewards: false,
+            advancedTracking: false,
+            prioritySupport: false,
+          },
+        },
+      }
     case 'ADD_EXPERIENCE':
       return {
         ...state,
@@ -465,6 +576,14 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
         },
       }
     case 'CREATE_ACCOUNT':
+      // Save user to localStorage for future logins
+      const existingUsers = JSON.parse(localStorage.getItem('transitUsers') || '[]')
+      const updatedUsers = [...existingUsers, action.payload]
+      localStorage.setItem('transitUsers', JSON.stringify(updatedUsers))
+      
+      // Save credentials for auto-login
+      saveCredentialsToStorage(action.payload.email, action.payload.password)
+      
       return {
         ...state,
         user: action.payload,
@@ -516,6 +635,14 @@ export function TransitProvider({ children }: { children: ReactNode }) {
       clearUserFromStorage()
     }
   }, [state.user])
+
+  // Auto-login on app start
+  useEffect(() => {
+    const credentials = loadCredentialsFromStorage()
+    if (credentials && !state.user.id) {
+      dispatch({ type: 'LOGIN', payload: credentials })
+    }
+  }, [])
 
   return (
     <TransitContext.Provider value={{ state, dispatch }}>

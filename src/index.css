@@ -9,14 +9,18 @@
   }
   
   body {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900 transition-colors duration-300;
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900 transition-colors duration-500;
     background-attachment: fixed;
+    background-size: 400% 400%;
+    animation: gradientShift 20s ease infinite;
   }
 
   /* Dark mode styles - apply to both html and body */
   html.dark body,
   body.dark {
     @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100;
+    background-size: 400% 400%;
+    animation: gradientShiftDark 20s ease infinite;
   }
 
   /* System theme detection */
@@ -24,7 +28,20 @@
     html:not(.light) body,
     body:not(.light) {
       @apply bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100;
+      background-size: 400% 400%;
+      animation: gradientShiftDark 20s ease infinite;
     }
+  }
+
+  /* Smooth gradient animations */
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  @keyframes gradientShiftDark {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
 }
 
@@ -32,9 +49,20 @@
   /* Modern Button Styles */
   .btn-primary {
     @apply bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 
-           text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 
-           shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 
-           border-0 focus:ring-4 focus:ring-blue-200 focus:outline-none;
+           text-white font-semibold py-3 px-6 rounded-xl transition-all duration-500 
+           shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105
+           border-0 focus:ring-4 focus:ring-blue-200 focus:outline-none
+           backdrop-blur-sm relative overflow-hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-white/20 to-transparent 
+           transform -skew-x-12 -translate-x-full transition-transform duration-700;
+  }
+
+  .btn-primary:hover::before {
+    @apply translate-x-full;
   }
   
   .btn-secondary {
@@ -62,10 +90,21 @@
   
   /* Modern Card Styles */
   .card {
-    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 
-           p-6 transition-all duration-300 hover:shadow-2xl hover:bg-white/90
+    @apply bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 
+           p-6 transition-all duration-500 hover:shadow-2xl hover:bg-white/90
            dark:bg-slate-800/80 dark:border-slate-700/30 dark:hover:bg-slate-800/90
-           dark:hover:border-blue-500/30 dark:hover:shadow-blue-500/10;
+           dark:hover:border-blue-500/30 dark:hover:shadow-blue-500/10
+           hover:scale-[1.02] hover:-translate-y-1 relative overflow-hidden;
+  }
+
+  .card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 
+           opacity-0 transition-opacity duration-500;
+  }
+
+  .card:hover::before {
+    @apply opacity-100;
   }
   
   .card-glass {
@@ -218,6 +257,51 @@
       transform: translateY(-10px);
     }
   }
+
+  /* Sleek hover effects */
+  .hover-lift {
+    @apply transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:shadow-2xl;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-500 hover:shadow-lg hover:shadow-blue-500/25;
+  }
+
+  /* Glass morphism enhancement */
+  .glass-enhanced {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl 
+           shadow-2xl hover:bg-white/20 transition-all duration-700
+           hover:shadow-blue-500/20 hover:border-blue-400/30;
+  }
+
+  /* Neon glow effects */
+  .neon-glow {
+    @apply shadow-lg shadow-blue-500/50 transition-all duration-500
+           hover:shadow-xl hover:shadow-blue-500/70;
+  }
+
+  /* Smooth entrance animations */
+  .fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Staggered animation delays */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
   
   /* Pulse Animation */
   .pulse-slow {

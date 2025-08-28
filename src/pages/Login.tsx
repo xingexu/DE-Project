@@ -48,39 +48,19 @@ export default function Login() {
 
     setIsLoading(true)
 
-    // Simulate API call
+    // Try to login with stored credentials
+    dispatch({ type: 'LOGIN', payload: formData })
+    
+    // Check if login was successful after a short delay
     setTimeout(() => {
-      // Mock user data with all required properties
-      const mockUser = {
-        id: '1',
-        name: 'Kevin',
-        points: 1250,
-        avatar: '🚌',
-        isTracking: false,
-        friends: ['2'],
-        parentTracking: true,
-        level: 5,
-        experience: 450,
-        weeklyPoints: 150,
-        totalTrips: 47,
-        totalDistance: 156.8,
-        totalTime: 23.5,
-        joinDate: new Date('2024-01-15'),
-        isPremium: false,
-        premiumExpiry: undefined,
-        premiumFeatures: {
-          extraXPGain: false,
-          specialRewards: false,
-          advancedTracking: false,
-          prioritySupport: false,
-        },
+      if (state.user && state.user.id) {
+        toast.success('Login successful!')
+        navigate('/')
+      } else {
+        toast.error('Invalid email or password')
       }
-
-      dispatch({ type: 'SET_USER', payload: mockUser })
-      toast.success('Login successful!')
-      navigate('/')
       setIsLoading(false)
-    }, 1500)
+    }, 1000)
   }
 
   const handleGuestLogin = () => {
@@ -90,6 +70,8 @@ export default function Login() {
       const guestUser = {
         id: 'guest',
         name: 'Guest User',
+        email: 'guest@transit.com',
+        password: 'guest123',
         points: 500,
         avatar: '👤',
         isTracking: false,
@@ -110,6 +92,10 @@ export default function Login() {
           advancedTracking: false,
           prioritySupport: false,
         },
+        locationSharing: false,
+        friendRequests: true,
+        chatEnabled: true,
+        messageRequests: false,
       }
 
       dispatch({ type: 'SET_USER', payload: guestUser })
@@ -130,23 +116,23 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4 text-black">
-      <div className="max-w-md w-full">
+      <div className="max-w-md w-full fade-in-up">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 stagger-1">
           <div className="flex justify-center items-center space-x-2 mb-4">
-            <Bus className="h-8 w-8 text-primary-600" />
-            <Train className="h-6 w-6 text-primary-500" />
-            <Car className="h-6 w-6 text-primary-400" />
+            <Bus className="h-8 w-8 text-primary-600 neon-glow" />
+            <Train className="h-6 w-6 text-primary-500 neon-glow" />
+            <Car className="h-6 w-6 text-primary-400 neon-glow" />
           </div>
           <h1 className="text-3xl font-bold text-black mb-2">Welcome Back</h1>
           <p className="text-black">Sign in to continue earning rewards</p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-black">
+        <div className="glass-enhanced p-8 text-black">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
-            <div>
+            <div className="stagger-2">
               <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
                 Email Address
               </label>
@@ -158,7 +144,7 @@ export default function Login() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
+                  className="w-full pl-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
                   placeholder="Enter your email"
                   required
                 />
@@ -166,7 +152,7 @@ export default function Login() {
             </div>
 
             {/* Password Field */}
-            <div>
+            <div className="stagger-3">
               <label htmlFor="password" className="block text-sm font-medium text-black mb-2">
                 Password
               </label>
@@ -178,14 +164,14 @@ export default function Login() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-700 hover:scale-110 transition-transform duration-200"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -207,7 +193,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
