@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react'
+import { authAPI, transitAPI } from '../services/api'
 
 // Types
 export interface User {
   id: string
   name: string
   email: string
-  password: string
   points: number
   avatar: string
   isTracking: boolean
@@ -67,6 +67,8 @@ export interface TransitState {
   trackingStartTime?: Date
   currentDistance: number
   theme: 'light' | 'dark'
+  isLoading: boolean
+  error: string | null
 }
 
 // Actions
@@ -79,73 +81,21 @@ type TransitAction =
   | { type: 'UPDATE_TRANSIT_LINES'; payload: TransitLine[] }
   | { type: 'RATE_LINE'; payload: { lineId: string; rating: number; noiseLevel: string; occupancy: string } }
   | { type: 'UPDATE_LINE_RATING'; payload: { lineId: string; rating: number; ratingCount: number; reliability: number; noiseLevel: string; occupancy: string } }
-  | { type: 'SET_USER'; payload: { 
-      id: string; 
-      name: string; 
-      email: string;
-      password: string;
-      avatar: string; 
-      points: number; 
-      isTracking: boolean; 
-      friends: string[]; 
-      parentTracking: boolean;
-      level: number;
-      experience: number;
-      weeklyPoints: number;
-      totalTrips: number;
-      totalDistance: number;
-      totalTime: number;
-      joinDate: Date;
-      isPremium: boolean;
-      premiumExpiry?: Date;
-      premiumFeatures: {
-        extraXPGain: boolean;
-        specialRewards: boolean;
-        advancedTracking: boolean;
-        prioritySupport: boolean;
-      };
-      locationSharing?: boolean;
-      friendRequests?: boolean;
-      chatEnabled?: boolean;
-      messageRequests?: boolean;
-    } }
-  | { type: 'LOGIN'; payload: { email: string; password: string } }
+  | { type: 'SET_USER'; payload: User }
+  | { type: 'LOGIN_REQUEST' }
+  | { type: 'LOGIN_SUCCESS'; payload: User }
+  | { type: 'LOGIN_FAILURE'; payload: string }
   | { type: 'LOGOUT' }
   | { type: 'ADD_EXPERIENCE'; payload: number }
   | { type: 'UPDATE_WEEKLY_STATS'; payload: { points: number; trips: number; distance: number; time: number } }
   | { type: 'UPGRADE_TO_PREMIUM'; payload: { expiryDate: Date } }
   | { type: 'CANCEL_PREMIUM' }
-  | { type: 'CREATE_ACCOUNT'; payload: { 
-      id: string; 
-      name: string;
-      email: string;
-      password: string;
-      avatar: string;
-      points: number;
-      isTracking: boolean;
-      friends: string[];
-      parentTracking: boolean;
-      level: number;
-      experience: number;
-      weeklyPoints: number;
-      totalTrips: number;
-      totalDistance: number;
-      totalTime: number;
-      joinDate: Date;
-      isPremium: boolean;
-      premiumExpiry?: Date;
-      premiumFeatures: {
-        extraXPGain: boolean;
-        specialRewards: boolean;
-        advancedTracking: boolean;
-        prioritySupport: boolean;
-      };
-      locationSharing?: boolean;
-      friendRequests?: boolean;
-      chatEnabled?: boolean;
-      messageRequests?: boolean;
-    } }
   | { type: 'SET_THEME'; payload: 'light' | 'dark' }
+  | { type: 'SET_ERROR'; payload: string }
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'FETCH_USER_PROFILE_SUCCESS'; payload: User }
+  | { type: 'FETCH_TRANSIT_LINES_SUCCESS'; payload: TransitLine[] }
 
 // Helper functions for leveling system
 const calculateLevel = (experience: number): number => {
@@ -169,44 +119,6 @@ const calculateProgressPercentage = (experience: number): number => {
   return Math.max(0, Math.min(100, (experienceInCurrentLevel / 100) * 100))
 }
 
-// Helper functions for localStorage
-const saveUserToStorage = (user: User) => {
-  try {
-    localStorage.setItem('transitUser', JSON.stringify(user))
-  } catch (error) {
-    console.error('Failed to save user to localStorage:', error)
-  }
-}
-
-// Helper functions for authentication
-const saveCredentialsToStorage = (email: string, password: string) => {
-  try {
-    localStorage.setItem('transitCredentials', JSON.stringify({ email, password }))
-  } catch (error) {
-    console.error('Failed to save credentials to localStorage:', error)
-  }
-}
-
-const loadCredentialsFromStorage = (): { email: string; password: string } | null => {
-  try {
-    const credentials = localStorage.getItem('transitCredentials')
-    if (credentials) {
-      return JSON.parse(credentials)
-    }
-  } catch (error) {
-    console.error('Failed to load credentials from localStorage:', error)
-  }
-  return null
-}
-
-const clearCredentialsFromStorage = () => {
-  try {
-    localStorage.removeItem('transitCredentials')
-  } catch (error) {
-    console.error('Failed to clear credentials from localStorage:', error)
-  }
-}
-
 // Helper function to calculate taubits based on distance and time
 const calculateTaubits = (distance: number, time: number): number => {
   // Each kilometer = 10 taubits, each minute = 10 taubits
@@ -215,71 +127,59 @@ const calculateTaubits = (distance: number, time: number): number => {
   return distancePoints + timePoints
 }
 
-const loadUserFromStorage = (): User | null => {
-  try {
-    const userData = localStorage.getItem('transitUser')
-    if (userData) {
-      const user = JSON.parse(userData)
-      
-      // Convert joinDate back to Date object
-      if (user.joinDate) {
-        user.joinDate = new Date(user.joinDate)
-      } else {
-        user.joinDate = new Date()
-      }
-      
-      // Ensure all required properties have default values
-      return {
-        id: user.id || '',
-        name: user.name || 'User',
-        email: user.email || '',
-        password: user.password || '',
-        points: user.points || 0,
-        avatar: user.avatar || '👤',
-        isTracking: user.isTracking || false,
-        currentLocation: user.currentLocation || undefined,
-        friends: user.friends || [],
-        parentTracking: user.parentTracking || false,
-        level: user.level || 1,
-        experience: user.experience || 0,
-        weeklyPoints: user.weeklyPoints || 0,
-        totalTrips: user.totalTrips || 0,
-        totalDistance: user.totalDistance || 0,
-        totalTime: user.totalTime || 0,
-        joinDate: user.joinDate || new Date(),
-        isPremium: user.isPremium || false,
-        premiumExpiry: user.premiumExpiry ? new Date(user.premiumExpiry) : undefined,
-        premiumFeatures: {
-          extraXPGain: user.premiumFeatures?.extraXPGain || false,
-          specialRewards: user.premiumFeatures?.specialRewards || false,
-          advancedTracking: user.premiumFeatures?.advancedTracking || false,
-          prioritySupport: user.premiumFeatures?.prioritySupport || false,
-        },
-        locationSharing: user.locationSharing || false,
-        friendRequests: user.friendRequests !== undefined ? user.friendRequests : true,
-        chatEnabled: user.chatEnabled !== undefined ? user.chatEnabled : true,
-        messageRequests: user.messageRequests || false,
-      }
-    }
-  } catch (error) {
-    console.error('Failed to load user from localStorage:', error)
+// Helper function to parse a backend user to our frontend User format
+const parseBackendUser = (backendUser: any): User => {
+  return {
+    id: backendUser.id.toString(),
+    name: backendUser.name,
+    email: backendUser.email,
+    points: backendUser.points || 0,
+    avatar: backendUser.avatar || '👤',
+    isTracking: false,
+    friends: [],
+    parentTracking: false,
+    level: backendUser.level || 1,
+    experience: backendUser.experience || 0,
+    weeklyPoints: backendUser.weekly_points || 0,
+    totalTrips: backendUser.total_trips || 0,
+    totalDistance: backendUser.total_distance || 0,
+    totalTime: backendUser.total_time || 0,
+    joinDate: backendUser.created_at ? new Date(backendUser.created_at) : new Date(),
+    isPremium: backendUser.is_premium || false,
+    premiumExpiry: backendUser.premium_expiry ? new Date(backendUser.premium_expiry) : undefined,
+    premiumFeatures: {
+      extraXPGain: backendUser.is_premium || false,
+      specialRewards: backendUser.is_premium || false,
+      advancedTracking: backendUser.is_premium || false,
+      prioritySupport: backendUser.is_premium || false,
+    },
+    locationSharing: backendUser.location_sharing || false,
+    friendRequests: backendUser.friend_requests !== undefined ? backendUser.friend_requests : true,
+    chatEnabled: backendUser.chat_enabled !== undefined ? backendUser.chat_enabled : true,
+    messageRequests: backendUser.message_requests || false,
   }
-  return null
 }
 
-const clearUserFromStorage = () => {
-  try {
-    localStorage.removeItem('transitUser')
-  } catch (error) {
-    console.error('Failed to clear user from localStorage:', error)
-  }
+// Parse transit lines from backend format
+const parseBackendTransitLines = (backendLines: any[]): TransitLine[] => {
+  return backendLines.map(line => ({
+    id: line.id.toString(),
+    name: line.name,
+    type: line.type as 'bus' | 'subway' | 'streetcar',
+    rating: line.rating || 0,
+    ratingCount: line.rating_count,
+    noiseLevel: line.noise_level as 'low' | 'medium' | 'high',
+    occupancy: line.occupancy as 'low' | 'medium' | 'high',
+    reliability: line.reliability || 80,
+    currentLocation: line.route && line.route.length > 0 
+      ? line.route[0] 
+      : { lat: 43.6532, lng: -79.3832 }, // Default location if none available
+    route: line.route || []
+  }))
 }
 
 // Initial state
 const getInitialState = (): TransitState => {
-  // Try to load user from localStorage
-  const storedUser = loadUserFromStorage()
-  
   // Try to load theme from localStorage
   let theme: 'light' | 'dark' = 'light'
   try {
@@ -292,11 +192,10 @@ const getInitialState = (): TransitState => {
   }
 
   return {
-    user: storedUser || {
+    user: {
       id: '',
       name: 'User',
       email: '',
-      password: '',
       points: 0,
       avatar: '👤',
       isTracking: false,
@@ -318,57 +217,12 @@ const getInitialState = (): TransitState => {
         advancedTracking: false,
         prioritySupport: false,
       },
+      locationSharing: false,
+      friendRequests: true,
+      chatEnabled: true,
+      messageRequests: false,
     },
-    transitLines: [
-      {
-        id: '1',
-        name: '501 Queen',
-        type: 'streetcar',
-        rating: 4.2,
-        ratingCount: 156,
-        noiseLevel: 'low',
-        occupancy: 'medium',
-        reliability: 85,
-        currentLocation: { lat: 43.6532, lng: -79.3832 },
-        route: [
-          { lat: 43.6532, lng: -79.3832 },
-          { lat: 43.6540, lng: -79.3840 },
-          { lat: 43.6550, lng: -79.3850 }
-        ]
-      },
-      {
-        id: '2',
-        name: '510 Spadina',
-        type: 'streetcar',
-        rating: 4.5,
-        ratingCount: 203,
-        noiseLevel: 'low',
-        occupancy: 'high',
-        reliability: 92,
-        currentLocation: { lat: 43.6540, lng: -79.3840 },
-        route: [
-          { lat: 43.6540, lng: -79.3840 },
-          { lat: 43.6550, lng: -79.3850 },
-          { lat: 43.6560, lng: -79.3860 }
-        ]
-      },
-      {
-        id: '3',
-        name: '1 Yonge-University',
-        type: 'subway',
-        rating: 4.8,
-        ratingCount: 342,
-        noiseLevel: 'medium',
-        occupancy: 'high',
-        reliability: 95,
-        currentLocation: { lat: 43.6550, lng: -79.3850 },
-        route: [
-          { lat: 43.6550, lng: -79.3850 },
-          { lat: 43.6560, lng: -79.3860 },
-          { lat: 43.6570, lng: -79.3870 }
-        ]
-      }
-    ],
+    transitLines: [],
     rewards: [
       {
         id: '1',
@@ -401,7 +255,9 @@ const getInitialState = (): TransitState => {
     ],
     isTracking: false,
     currentDistance: 0,
-    theme: theme
+    theme: theme,
+    isLoading: false,
+    error: null
   }
 }
 
@@ -445,7 +301,6 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
       const currentExperience = state.user.experience || 0
       const newLevel = calculateLevel(currentExperience + newExperience)
       const currentLevel = state.user.level || 1
-      const levelUp = newLevel > currentLevel
       
       return {
         ...state,
@@ -493,31 +348,35 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
         ...state,
         user: action.payload,
       }
-    case 'LOGIN':
-      // Find user by email and password
-      const storedUsers = JSON.parse(localStorage.getItem('transitUsers') || '[]')
-      const user = storedUsers.find((u: User) => 
-        u.email === action.payload.email && u.password === action.payload.password
-      )
-      
-      if (user) {
-        // Save credentials for auto-login
-        saveCredentialsToStorage(action.payload.email, action.payload.password)
-        return {
-          ...state,
-          user: user,
-        }
+    case 'LOGIN_REQUEST':
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
       }
-      return state
+    case 'LOGIN_SUCCESS':
+      return {
+        ...state,
+        isLoading: false,
+        user: action.payload,
+        error: null,
+      }
+    case 'LOGIN_FAILURE':
+      return {
+        ...state,
+        isLoading: false,
+        error: action.payload,
+      }
     case 'LOGOUT':
-      clearCredentialsFromStorage()
+      // Clear token
+      localStorage.removeItem('token')
+      
       return {
         ...state,
         user: {
           id: '',
           name: 'User',
           email: '',
-          password: '',
           points: 0,
           avatar: '👤',
           isTracking: false,
@@ -539,6 +398,10 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
             advancedTracking: false,
             prioritySupport: false,
           },
+          locationSharing: false,
+          friendRequests: true,
+          chatEnabled: true,
+          messageRequests: false,
         },
       }
     case 'ADD_EXPERIENCE':
@@ -564,6 +427,12 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
           ...state.user,
           isPremium: true,
           premiumExpiry: action.payload.expiryDate,
+          premiumFeatures: {
+            extraXPGain: true,
+            specialRewards: true,
+            advancedTracking: true,
+            prioritySupport: true,
+          }
         },
       }
     case 'CANCEL_PREMIUM':
@@ -573,20 +442,45 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
           ...state.user,
           isPremium: false,
           premiumExpiry: undefined,
+          premiumFeatures: {
+            extraXPGain: false,
+            specialRewards: false,
+            advancedTracking: false,
+            prioritySupport: false,
+          }
         },
       }
-    case 'CREATE_ACCOUNT':
-      // Save user to localStorage for future logins
-      const existingUsers = JSON.parse(localStorage.getItem('transitUsers') || '[]')
-      const updatedUsers = [...existingUsers, action.payload]
-      localStorage.setItem('transitUsers', JSON.stringify(updatedUsers))
-      
-      // Save credentials for auto-login
-      saveCredentialsToStorage(action.payload.email, action.payload.password)
-      
+    case 'SET_THEME':
+      return {
+        ...state,
+        theme: action.payload,
+      }
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.payload,
+      }
+    case 'CLEAR_ERROR':
+      return {
+        ...state,
+        error: null,
+      }
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      }
+    case 'FETCH_USER_PROFILE_SUCCESS':
       return {
         ...state,
         user: action.payload,
+        isLoading: false,
+      }
+    case 'FETCH_TRANSIT_LINES_SUCCESS':
+      return {
+        ...state,
+        transitLines: action.payload,
+        isLoading: false,
       }
     case 'UPDATE_LINE_RATING':
       return {
@@ -604,11 +498,6 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
             : line
         ),
       }
-    case 'SET_THEME':
-      return {
-        ...state,
-        theme: action.payload,
-      }
     default:
       return state
   }
@@ -618,6 +507,14 @@ function transitReducer(state: TransitState, action: TransitAction): TransitStat
 interface TransitContextType {
   state: TransitState
   dispatch: React.Dispatch<TransitAction>
+  loadUserProfile: () => Promise<void>
+  loadTransitLines: () => Promise<void>
+  login: (credentials: { email: string; password: string }) => Promise<void>
+  logout: () => Promise<void>
+  signup: (userData: any) => Promise<void>
+  updateProfile: (profileData: any) => Promise<void>
+  recordTrip: (tripData: any) => Promise<void>
+  rateLine: (lineId: string, ratingData: any) => Promise<void>
 }
 
 const TransitContext = createContext<TransitContextType | undefined>(undefined)
@@ -626,26 +523,293 @@ const TransitContext = createContext<TransitContextType | undefined>(undefined)
 export function TransitProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(transitReducer, getInitialState())
 
-  // Save user data whenever it changes
+  // Apply theme
   useEffect(() => {
-    if (state.user && state.user.id) {
-      saveUserToStorage(state.user)
-    } else {
-      // Clear storage if no user
-      clearUserFromStorage()
-    }
-  }, [state.user])
+    const root = document.documentElement
+    const body = document.body
+    
+    // Remove existing theme classes
+    root.classList.remove('light', 'dark')
+    body.classList.remove('light', 'dark')
+    
+    // Add current theme
+    root.classList.add(state.theme)
+    body.classList.add(state.theme)
+    
+    // Save theme preference
+    localStorage.setItem('transitTheme', state.theme)
+  }, [state.theme])
 
-  // Auto-login on app start
+  // Auto-load user profile if token exists, or auto-login demo user
   useEffect(() => {
-    const credentials = loadCredentialsFromStorage()
-    if (credentials && !state.user.id) {
-      dispatch({ type: 'LOGIN', payload: credentials })
+    const token = localStorage.getItem('token')
+    if (token && !state.user.id) {
+      loadUserProfile()
+    } else if (!state.user.id) {
+      // Auto-login demo user for development
+      login({ email: 'demo@transit.com', password: 'password' })
+        .then(() => {
+          // Load transit lines after successful login
+          loadTransitLines()
+        })
+        .catch((error) => {
+          console.error('Auto-login failed:', error)
+          // Fallback to demo data if login fails
+          const demoUser = {
+            id: 'demo-user',
+            name: 'Demo User',
+            email: 'demo@transit.com',
+            points: 1250,
+            avatar: '🚌',
+            isTracking: false,
+            currentLocation: undefined,
+            friends: [],
+            parentTracking: false,
+            level: 3,
+            experience: 250,
+            weeklyPoints: 150,
+            totalTrips: 25,
+            totalDistance: 125.5,
+            totalTime: 45.2,
+            joinDate: new Date(),
+            isPremium: false,
+            premiumExpiry: undefined,
+            premiumFeatures: {
+              extraXPGain: false,
+              specialRewards: false,
+              advancedTracking: false,
+              prioritySupport: false,
+            },
+            locationSharing: false,
+            friendRequests: true,
+            chatEnabled: true,
+            messageRequests: false,
+          }
+          dispatch({ type: 'SET_USER', payload: demoUser })
+        })
     }
   }, [])
+  
+  // API functions
+  const loadUserProfile = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      const response = await authAPI.getCurrentUser()
+      
+      if (response.success) {
+        const userData = parseBackendUser(response.data)
+        dispatch({ type: 'FETCH_USER_PROFILE_SUCCESS', payload: userData })
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: response.message || 'Failed to load user profile' })
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error)
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to load user profile' })
+      
+      // If unauthorized, logout
+      if (error.response && error.response.status === 401) {
+        localStorage.removeItem('token')
+      }
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
+  
+  const loadTransitLines = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      const response = await transitAPI.getLines()
+      
+      if (response.success) {
+        const transitLines = parseBackendTransitLines(response.data)
+        dispatch({ type: 'FETCH_TRANSIT_LINES_SUCCESS', payload: transitLines })
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: response.message || 'Failed to load transit lines' })
+      }
+    } catch (error) {
+      console.error('Error loading transit lines:', error)
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to load transit lines' })
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
+  
+  const login = async (credentials: { email: string; password: string }) => {
+    dispatch({ type: 'LOGIN_REQUEST' })
+    
+    try {
+      const response = await authAPI.login(credentials)
+      
+      if (response.success) {
+        // Store token
+        localStorage.setItem('token', response.data.token)
+        
+        // Transform user data
+        const userData = parseBackendUser(response.data.user)
+        
+        dispatch({ type: 'LOGIN_SUCCESS', payload: userData })
+        return response
+      } else {
+        dispatch({ type: 'LOGIN_FAILURE', payload: response.message || 'Login failed' })
+        throw new Error(response.message || 'Login failed')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      dispatch({ type: 'LOGIN_FAILURE', payload: error.message || 'Login failed' })
+      throw error
+    }
+  }
+  
+  const logout = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      await authAPI.logout()
+      dispatch({ type: 'LOGOUT' })
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Still logout locally even if API call fails
+      dispatch({ type: 'LOGOUT' })
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
+  
+  const signup = async (userData: any) => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      const response = await authAPI.register(userData)
+      
+      if (response.success) {
+        // Store token
+        localStorage.setItem('token', response.data.token)
+        
+        // Transform user data
+        const newUser = parseBackendUser(response.data.user)
+        
+        dispatch({ type: 'LOGIN_SUCCESS', payload: newUser })
+        return response
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: response.message || 'Signup failed' })
+        throw new Error(response.message || 'Signup failed')
+      }
+    } catch (error) {
+      console.error('Signup error:', error)
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Signup failed' })
+      throw error
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
+  
+  const updateProfile = async (profileData: any) => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      const response = await authAPI.updateProfile(profileData)
+      
+      if (response.success) {
+        const userData = parseBackendUser(response.data)
+        dispatch({ type: 'FETCH_USER_PROFILE_SUCCESS', payload: userData })
+        return response
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: response.message || 'Failed to update profile' })
+        throw new Error(response.message || 'Failed to update profile')
+      }
+    } catch (error) {
+      console.error('Update profile error:', error)
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to update profile' })
+      throw error
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
+  
+  const recordTrip = async (tripData: any) => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      const response = await transitAPI.recordTrip(tripData)
+      
+      if (response.success) {
+        // Update user stats with data from backend
+        const userData = parseBackendUser(response.data.user)
+        dispatch({ type: 'FETCH_USER_PROFILE_SUCCESS', payload: userData })
+        
+        // If user leveled up, show notification
+        if (response.data.levelUp) {
+          // Could dispatch an event to show level-up notification
+        }
+        
+        return response
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: response.message || 'Failed to record trip' })
+        throw new Error(response.message || 'Failed to record trip')
+      }
+    } catch (error) {
+      console.error('Record trip error:', error)
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to record trip' })
+      throw error
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
+  
+  const rateLine = async (lineId: string, ratingData: any) => {
+    dispatch({ type: 'SET_LOADING', payload: true })
+    
+    try {
+      const response = await transitAPI.rateLine(lineId, ratingData)
+      
+      if (response.success) {
+        // Update transit line with new rating
+        dispatch({
+          type: 'UPDATE_LINE_RATING',
+          payload: {
+            lineId,
+            rating: response.data.transitLine.rating,
+            ratingCount: response.data.transitLine.ratingCount,
+            reliability: response.data.transitLine.reliability || 80,
+            noiseLevel: response.data.transitLine.noiseLevel,
+            occupancy: response.data.transitLine.occupancy
+          }
+        })
+        
+        // Add points to user
+        if (response.data.pointsEarned) {
+          dispatch({ type: 'ADD_POINTS', payload: response.data.pointsEarned })
+        }
+        
+        return response
+      } else {
+        dispatch({ type: 'SET_ERROR', payload: response.message || 'Failed to rate transit line' })
+        throw new Error(response.message || 'Failed to rate transit line')
+      }
+    } catch (error) {
+      console.error('Rate line error:', error)
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to rate transit line' })
+      throw error
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }
 
   return (
-    <TransitContext.Provider value={{ state, dispatch }}>
+    <TransitContext.Provider value={{ 
+      state, 
+      dispatch, 
+      loadUserProfile, 
+      loadTransitLines, 
+      login, 
+      logout, 
+      signup, 
+      updateProfile, 
+      recordTrip, 
+      rateLine 
+    }}>
       {children}
     </TransitContext.Provider>
   )
@@ -658,4 +822,4 @@ export function useTransit() {
     throw new Error('useTransit must be used within a TransitProvider')
   }
   return context
-} 
+}

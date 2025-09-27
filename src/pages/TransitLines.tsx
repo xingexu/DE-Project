@@ -10,7 +10,6 @@ import {
   Filter,
   Search,
   Info,
-  LocateIcon,
   X,
   Bus,
   Train,

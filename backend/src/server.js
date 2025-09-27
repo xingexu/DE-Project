@@ -7,6 +7,8 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const transitRoutes = require('./routes/transit');
+const rewardsRoutes = require('./routes/rewards');
+const socialRoutes = require('./routes/social');
 
 // Import database connection
 const { pool } = require('./config/database');
@@ -57,6 +59,8 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/transit', transitRoutes);
+app.use('/api/rewards', rewardsRoutes);
+app.use('/api/social', socialRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -125,4 +129,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-

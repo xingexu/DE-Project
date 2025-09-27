@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useTransit } from '../contexts/TransitContext'
 import toast from 'react-hot-toast'
+import { authAPI } from '../services/api'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -22,6 +23,10 @@ export default function Login() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [formErrors, setFormErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({})
 
   // Redirect if already logged in
   useEffect(() => {
@@ -36,31 +41,121 @@ export default function Login() {
       ...prev,
       [name]: value
     }))
+    
+    // Clear error when typing
+    if (formErrors[name as keyof typeof formErrors]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }))
+    }
+  }
+
+  const validateForm = () => {
+    const errors: {
+      email?: string;
+      password?: string;
+    } = {}
+    
+    // Simple email validation
+    if (!formData.email) {
+      errors.email = 'Email is required'
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = 'Email is invalid'
+    }
+    
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'Password is required'
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!formData.email || !formData.password) {
-      toast.error('Please fill in all fields')
+    
+    // Validate form
+    if (!validateForm()) {
       return
     }
 
     setIsLoading(true)
 
-    // Try to login with stored credentials
-    dispatch({ type: 'LOGIN', payload: formData })
-    
-    // Check if login was successful after a short delay
-    setTimeout(() => {
-      if (state.user && state.user.id) {
+    try {
+      // Call API for login
+      const response = await authAPI.login({
+        email: formData.email,
+        password: formData.password
+      })
+      
+      if (response.success) {
+        // Store token
+        localStorage.setItem('token', response.data.token)
+        
+        // Transform user data to match our app's structure
+        const userData = {
+          id: response.data.user.id.toString(),
+          name: response.data.user.name,
+          email: response.data.user.email,
+          points: response.data.user.points || 0,
+          avatar: response.data.user.avatar || '👤',
+          isTracking: false,
+          friends: [],
+          parentTracking: false,
+          level: response.data.user.level || 1,
+          experience: response.data.user.experience || 0,
+          weeklyPoints: response.data.user.weekly_points || 0,
+          totalTrips: response.data.user.total_trips || 0,
+          totalDistance: response.data.user.total_distance || 0,
+          totalTime: response.data.user.total_time || 0,
+          joinDate: response.data.user.created_at ? new Date(response.data.user.created_at) : new Date(),
+          isPremium: response.data.user.is_premium || false,
+          premiumExpiry: response.data.user.premium_expiry ? new Date(response.data.user.premium_expiry) : undefined,
+          premiumFeatures: {
+            extraXPGain: response.data.user.is_premium || false,
+            specialRewards: response.data.user.is_premium || false,
+            advancedTracking: response.data.user.is_premium || false,
+            prioritySupport: response.data.user.is_premium || false,
+          },
+          locationSharing: response.data.user.location_sharing || false,
+          friendRequests: response.data.user.friend_requests !== undefined ? response.data.user.friend_requests : true,
+          chatEnabled: response.data.user.chat_enabled !== undefined ? response.data.user.chat_enabled : true,
+          messageRequests: response.data.user.message_requests || false,
+        }
+        
+        // Update context
+        dispatch({ type: 'SET_USER', payload: userData })
+        
         toast.success('Login successful!')
         navigate('/')
       } else {
-        toast.error('Invalid email or password')
+        toast.error(response.message || 'Login failed')
       }
+    } catch (error) {
+      console.error('Login error:', error)
+      
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with an error
+        if (error.response.status === 401) {
+          toast.error('Invalid email or password')
+        } else if (error.response.data && error.response.data.message) {
+          toast.error(error.response.data.message)
+        } else {
+          toast.error('Login failed. Please try again.')
+        }
+      } else if (error.request) {
+        // No response received
+        toast.error('Server not responding. Please try again later.')
+      } else {
+        // Other errors
+        toast.error('Login failed. Please try again.')
+      }
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   const handleGuestLogin = () => {
@@ -71,7 +166,6 @@ export default function Login() {
         id: 'guest',
         name: 'Guest User',
         email: 'guest@transit.com',
-        password: 'guest123',
         points: 500,
         avatar: '👤',
         isTracking: false,
@@ -144,11 +238,14 @@ export default function Login() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
+                  className={`w-full pl-10 py-3 border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift`}
                   placeholder="Enter your email"
                   required
                 />
               </div>
+              {formErrors.email && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -164,7 +261,7 @@ export default function Login() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
+                  className={`w-full pl-10 pr-12 py-3 border ${formErrors.password ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift`}
                   placeholder="Enter your password"
                   required
                 />
@@ -176,6 +273,9 @@ export default function Login() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {formErrors.password && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+              )}
             </div>
 
             {/* Forgot Password */}
@@ -234,4 +334,4 @@ export default function Login() {
       </div>
     </div>
   )
-} 
+}

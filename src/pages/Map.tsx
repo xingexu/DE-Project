@@ -10,7 +10,7 @@ import {
   Filter,
   Search,
   Info,
-  LocateIcon,
+  Locate,
   X
 } from 'lucide-react'
 import { useTransit } from '../contexts/TransitContext'
@@ -385,7 +385,7 @@ export default function Map() {
             <span className="text-gray-600">Streetcar</span>
           </div>
           <div className="flex items-center space-x-2">
-            <LocateIcon className="h-4 w-4 text-blue-500" />
+            <Locate className="h-4 w-4 text-blue-500" />
             <span className="text-gray-600">Your Location</span>
           </div>
           {trackedLines.length > 0 && (

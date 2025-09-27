@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { 
-  Users, 
-  MapPin, 
-  MessageCircle, 
+import {
+  Users,
+  MapPin,
+  MessageCircle,
   Bell,
   UserPlus,
   Settings,
@@ -26,6 +26,7 @@ import {
   Hash
 } from 'lucide-react'
 import { useTransit } from '../contexts/TransitContext'
+import { socialAPI } from '../services/api'
 import toast from 'react-hot-toast'
 
 interface Friend {
@@ -73,155 +74,75 @@ interface ChatMessage {
   type: 'text' | 'image' | 'location'
 }
 
-const mockFriends: Friend[] = [
-  {
-    id: '1',
-    name: 'Chinese Beaver',
-    avatar: '🦫',
-    isOnline: true,
-    currentLocation: { lat: 43.6532, lng: -79.3832 },
-    currentLine: '501 Queen',
-    lastSeen: '2 min ago',
-    status: 'On my way to work! 🚋',
-    level: 5,
-    points: 1250
-  },
-  {
-    id: '2',
-    name: 'Kevin Li',
-    avatar: '🚌',
-    isOnline: true,
-    currentLocation: { lat: 43.6540, lng: -79.3840 },
-    currentLine: '510 Spadina',
-    lastSeen: '5 min ago',
-    status: 'Great ride this morning!',
-    level: 4,
-    points: 980
-  },
-  {
-    id: '3',
-    name: 'Sarah Chen',
-    avatar: '🚇',
+// Helper functions to transform API data to component interfaces
+const transformFriendData = (apiFriend: any): Friend => ({
+  id: apiFriend.id.toString(),
+  name: apiFriend.name,
+  avatar: apiFriend.avatar || '👤',
+  isOnline: apiFriend.is_online || false,
+  currentLocation: undefined, // API doesn't provide this yet
+  currentLine: undefined, // API doesn't provide this yet
+  lastSeen: apiFriend.last_seen || 'Unknown',
+  status: undefined, // API doesn't provide this yet
+  level: 1, // API doesn't provide this yet
+  points: 0 // API doesn't provide this yet
+});
+
+const transformGroupData = (apiGroup: any): Group => ({
+  id: apiGroup.id.toString(),
+  name: apiGroup.name,
+  description: apiGroup.description,
+  icon: apiGroup.icon || '👥',
+  memberCount: apiGroup.member_count || 0,
+  isActive: apiGroup.is_active || false,
+  lastActivity: apiGroup.last_activity || 'Never',
+  isAdmin: apiGroup.role === 'admin' || apiGroup.created_by === 'current_user', // Simplified
+  members: [] // Would need additional API call to get members
+});
+
+const transformPostData = (apiPost: any): Post => ({
+  id: apiPost.id.toString(),
+  author: {
+    id: apiPost.author_id?.toString() || '1',
+    name: apiPost.author_name || 'Unknown User',
+    avatar: apiPost.author_avatar || '👤',
     isOnline: false,
-    lastSeen: '1 hour ago',
-    status: 'Offline',
-    level: 3,
-    points: 750
+    lastSeen: 'Unknown',
+    level: apiPost.author_level || 1,
+    points: 0
   },
-  {
-    id: '4',
-    name: 'Mike Johnson',
-    avatar: '🚋',
-    isOnline: true,
-    currentLine: '504 King',
-    lastSeen: '1 min ago',
-    status: 'Heading to campus',
-    level: 4,
-    points: 920
-  }
-]
+  content: apiPost.content,
+  image: apiPost.image,
+  timestamp: new Date(apiPost.created_at),
+  likes: apiPost.likes || 0,
+  comments: apiPost.comments || 0,
+  isLiked: apiPost.is_liked || false,
+  type: apiPost.type || 'status'
+});
 
-const mockGroups: Group[] = [
-  {
-    id: '1',
-    name: 'Morning Commute',
-    description: 'Daily commuters sharing tips and updates',
-    icon: '🚌',
-    memberCount: 12,
-    isActive: true,
-    lastActivity: '2 min ago',
-    isAdmin: true,
-    members: mockFriends.slice(0, 3)
+const transformMessageData = (apiMessage: any): ChatMessage => ({
+  id: apiMessage.id.toString(),
+  sender: {
+    id: apiMessage.sender_id?.toString() || '1',
+    name: apiMessage.sender_name || 'Unknown User',
+    avatar: apiMessage.sender_avatar || '👤',
+    isOnline: false,
+    lastSeen: 'Unknown',
+    level: apiMessage.sender_level || 1,
+    points: 0
   },
-  {
-    id: '2',
-    name: 'Campus Crew',
-    description: 'University students and staff',
-    icon: '🎓',
-    memberCount: 8,
-    isActive: false,
-    lastActivity: '1 hour ago',
-    isAdmin: false,
-    members: mockFriends.slice(1, 4)
-  },
-  {
-    id: '3',
-    name: 'Transit Enthusiasts',
-    description: 'Fans of public transportation',
-    icon: '🚋',
-    memberCount: 25,
-    isActive: true,
-    lastActivity: '5 min ago',
-    isAdmin: false,
-    members: mockFriends
-  }
-]
-
-const mockPosts: Post[] = [
-  {
-    id: '1',
-    author: mockFriends[0],
-    content: 'Just earned 50 points for my morning commute! 🚋 #transit #points',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    likes: 12,
-    comments: 3,
-    isLiked: true,
-    type: 'achievement'
-  },
-  {
-    id: '2',
-    author: mockFriends[1],
-    content: 'Beautiful sunrise from the 510 Spadina streetcar this morning! ☀️',
-    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400',
-    timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-    likes: 8,
-    comments: 1,
-    isLiked: false,
-    type: 'photo'
-  },
-  {
-    id: '3',
-    author: mockFriends[3],
-    content: 'Completed my 100th trip today! 🎉 Thanks to everyone in the Morning Commute group for the support!',
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    likes: 25,
-    comments: 7,
-    isLiked: true,
-    type: 'achievement'
-  }
-]
-
-const mockChatMessages: ChatMessage[] = [
-  {
-    id: '1',
-    sender: mockFriends[0],
-    message: 'Hey everyone! How was your commute today?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 10),
-    type: 'text'
-  },
-  {
-    id: '2',
-    sender: mockFriends[1],
-    message: 'Great! The 510 was running smoothly this morning',
-    timestamp: new Date(Date.now() - 1000 * 60 * 8),
-    type: 'text'
-  },
-  {
-    id: '3',
-    sender: mockFriends[3],
-    message: 'Anyone else notice the new digital displays on the 501?',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5),
-    type: 'text'
-  }
-]
+  message: apiMessage.content,
+  timestamp: new Date(apiMessage.created_at),
+  type: apiMessage.type || 'text'
+});
 
 export default function Social() {
-  const { state } = useTransit()
+  const { state, dispatch } = useTransit()
   const [activeTab, setActiveTab] = useState<'feed' | 'friends' | 'groups' | 'chat'>('feed')
-  const [friends] = useState<Friend[]>(mockFriends)
-  const [groups] = useState<Group[]>(mockGroups)
-  const [posts] = useState<Post[]>(mockPosts)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(mockChatMessages)
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
+  const [posts, setPosts] = useState<Post[]>([])
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
   const [showPokeModal, setShowPokeModal] = useState(false)
@@ -229,9 +150,11 @@ export default function Social() {
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [parentTracking, setParentTracking] = useState(state.user.parentTracking)
+  const [parentTracking, setParentTracking] = useState(state.user.parentTracking || false)
   const [newPostContent, setNewPostContent] = useState('')
   const [showNewPostModal, setShowNewPostModal] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -244,6 +167,104 @@ export default function Social() {
     scrollToBottom()
   }, [chatMessages])
 
+  // Load initial data
+  useEffect(() => {
+    loadInitialData()
+  }, [])
+
+  // Load data when tab changes
+  useEffect(() => {
+    if (activeTab === 'feed') {
+      loadFeed()
+    } else if (activeTab === 'friends') {
+      loadFriends()
+    } else if (activeTab === 'groups') {
+      loadGroups()
+    }
+  }, [activeTab])
+
+  const loadInitialData = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      await Promise.all([
+        loadFriends(),
+        loadGroups(),
+        loadFeed()
+      ])
+    } catch (error) {
+      console.error('Error loading initial data:', error)
+      setError('Failed to load social data')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadFriends = async () => {
+    try {
+      const response = await socialAPI.getFriends()
+      if (response.success) {
+        const transformedFriends = response.data.map(transformFriendData)
+        setFriends(transformedFriends)
+      }
+    } catch (error) {
+      console.error('Error loading friends:', error)
+      toast.error('Failed to load friends')
+    }
+  }
+
+  const loadGroups = async () => {
+    try {
+      const response = await socialAPI.getGroups()
+      if (response.success) {
+        const transformedGroups = response.data.map(transformGroupData)
+        setGroups(transformedGroups)
+      }
+    } catch (error) {
+      console.error('Error loading groups:', error)
+      toast.error('Failed to load groups')
+    }
+  }
+
+  const loadFeed = async () => {
+    try {
+      const response = await socialAPI.getFeed()
+      if (response.success) {
+        const transformedPosts = response.data.map(transformPostData)
+        setPosts(transformedPosts)
+      }
+    } catch (error) {
+      console.error('Error loading feed:', error)
+      toast.error('Failed to load feed')
+    }
+  }
+
+  const loadGroupMessages = async (groupId: number) => {
+    try {
+      const response = await socialAPI.getGroupMessages(groupId)
+      if (response.success) {
+        const transformedMessages = response.data.map(transformMessageData)
+        setChatMessages(transformedMessages)
+      }
+    } catch (error) {
+      console.error('Error loading group messages:', error)
+      toast.error('Failed to load messages')
+    }
+  }
+
+  const loadDirectMessages = async (userId: number) => {
+    try {
+      const response = await socialAPI.getDirectMessages(userId)
+      if (response.success) {
+        const transformedMessages = response.data.map(transformMessageData)
+        setChatMessages(transformedMessages)
+      }
+    } catch (error) {
+      console.error('Error loading direct messages:', error)
+      toast.error('Failed to load messages')
+    }
+  }
+
   const handlePoke = (friend: Friend) => {
     setSelectedFriend(friend)
     setShowPokeModal(true)
@@ -251,14 +272,36 @@ export default function Social() {
 
   const sendPoke = () => {
     if (selectedFriend) {
+      // For now, just show success message - could implement poke API later
       toast.success(`Poked ${selectedFriend.name}!`)
       setShowPokeModal(false)
     }
   }
 
-  const toggleParentTracking = () => {
-    setParentTracking(!parentTracking)
-    toast.success(parentTracking ? 'Parent tracking disabled' : 'Parent tracking enabled')
+  const toggleParentTracking = async () => {
+    try {
+      // Update user profile with parent tracking preference
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          parentTracking: !parentTracking
+        })
+      })
+
+      if (response.ok) {
+        setParentTracking(!parentTracking)
+        toast.success(parentTracking ? 'Parent tracking disabled' : 'Parent tracking enabled')
+      } else {
+        toast.error('Failed to update parent tracking')
+      }
+    } catch (error) {
+      console.error('Error updating parent tracking:', error)
+      toast.error('Failed to update parent tracking')
+    }
   }
 
   const handleAddFriends = () => {
@@ -269,37 +312,50 @@ export default function Social() {
     setShowCreateGroupModal(true)
   }
 
-  const handleViewGroup = (group: Group) => {
+  const handleViewGroup = async (group: Group) => {
     setSelectedGroup(group)
     setActiveTab('chat')
+    await loadGroupMessages(parseInt(group.id))
   }
 
-  const handleMessageFriend = (friend: Friend) => {
+  const handleMessageFriend = async (friend: Friend) => {
     setSelectedFriend(friend)
     setActiveTab('chat')
+    await loadDirectMessages(parseInt(friend.id))
   }
 
-  const sendChatMessage = () => {
+  const sendChatMessage = async () => {
     if (!chatInput.trim()) return
 
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      sender: {
-        id: state.user.id || 'user',
-        name: state.user.name,
-        avatar: state.user.avatar,
-        isOnline: true,
-        lastSeen: 'now',
-        level: state.user.level || 1,
-        points: state.user.points || 0
-      },
-      message: chatInput.trim(),
-      timestamp: new Date(),
-      type: 'text'
-    }
+    try {
+      let response
+      if (selectedGroup) {
+        response = await socialAPI.sendGroupMessage(
+          parseInt(selectedGroup.id),
+          chatInput.trim()
+        )
+      } else if (selectedFriend) {
+        response = await socialAPI.sendDirectMessage(
+          parseInt(selectedFriend.id),
+          chatInput.trim()
+        )
+      }
 
-    setChatMessages(prev => [...prev, newMessage])
-    setChatInput('')
+      if (response?.success) {
+        // Reload messages to get the new message with proper data
+        if (selectedGroup) {
+          await loadGroupMessages(parseInt(selectedGroup.id))
+        } else if (selectedFriend) {
+          await loadDirectMessages(parseInt(selectedFriend.id))
+        }
+        setChatInput('')
+      } else {
+        toast.error('Failed to send message')
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast.error('Failed to send message')
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -309,30 +365,54 @@ export default function Social() {
     }
   }
 
-  const toggleLike = (post: Post) => {
-    post.isLiked = !post.isLiked
-    post.likes += post.isLiked ? 1 : -1
-    toast.success(post.isLiked ? 'Post liked!' : 'Post unliked')
+  const toggleLike = async (post: Post) => {
+    try {
+      const response = await socialAPI.toggleLike(parseInt(post.id))
+      if (response.success) {
+        // Update the post in the local state
+        setPosts(prevPosts =>
+          prevPosts.map(p =>
+            p.id === post.id
+              ? {
+                  ...p,
+                  isLiked: response.data.liked,
+                  likes: p.likes + (response.data.liked ? 1 : -1)
+                }
+              : p
+          )
+        )
+        toast.success(response.data.liked ? 'Post liked!' : 'Post unliked')
+      } else {
+        toast.error('Failed to update like')
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error)
+      toast.error('Failed to update like')
+    }
   }
 
-  const createNewPost = () => {
+  const createNewPost = async () => {
     if (!newPostContent.trim()) return
 
-    const newPost: Post = {
-      id: Date.now().toString(),
-      author: state.user,
-      content: newPostContent.trim(),
-      timestamp: new Date(),
-      likes: 0,
-      comments: 0,
-      isLiked: false,
-      type: 'status'
-    }
+    try {
+      const response = await socialAPI.createPost({
+        content: newPostContent.trim(),
+        type: 'status'
+      })
 
-    // In a real app, this would be added to the posts array
-    toast.success('Post created successfully!')
-    setNewPostContent('')
-    setShowNewPostModal(false)
+      if (response.success) {
+        // Reload feed to include the new post
+        await loadFeed()
+        toast.success('Post created successfully!')
+        setNewPostContent('')
+        setShowNewPostModal(false)
+      } else {
+        toast.error('Failed to create post')
+      }
+    } catch (error) {
+      console.error('Error creating post:', error)
+      toast.error('Failed to create post')
+    }
   }
 
   const filteredFriends = friends.filter(friend => 
@@ -423,8 +503,20 @@ export default function Social() {
           </div>
 
           {/* Posts */}
-          <div className="space-y-4">
-            {posts.map((post) => (
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-slate-600 dark:text-slate-400 mt-2">Loading posts...</p>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-8">
+              <TrendingUp className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-600 dark:text-slate-400">No posts yet</p>
+              <p className="text-slate-500 text-sm mt-2">Be the first to share something!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {posts.map((post) => (
               <div key={post.id} className="card">
                 <div className="flex items-start space-x-3 mb-4">
                   <div className="text-2xl">{post.author.avatar}</div>
@@ -466,7 +558,8 @@ export default function Social() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -501,9 +594,27 @@ export default function Social() {
           {/* Friends List */}
           <div className="card">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Friends ({filteredFriends.length})</h3>
-            
-            <div className="space-y-3">
-              {filteredFriends.map((friend) => (
+
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-slate-600 dark:text-slate-400 mt-2">Loading friends...</p>
+              </div>
+            ) : filteredFriends.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 dark:text-slate-400">No friends found</p>
+                <button
+                  onClick={handleAddFriends}
+                  className="btn-primary mt-4"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Friends
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredFriends.map((friend) => (
                 <div key={friend.id} className="flex items-center justify-between p-4 glass rounded-xl hover:bg-white/90 transition-all duration-300">
                   <div className="flex items-center space-x-3">
                     <div className="relative">
@@ -564,7 +675,8 @@ export default function Social() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -574,9 +686,27 @@ export default function Social() {
         <div className="space-y-6">
           <div className="card">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Groups ({filteredGroups.length})</h3>
-            
-            <div className="space-y-4">
-              {filteredGroups.map((group) => (
+
+            {isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-slate-600 dark:text-slate-400 mt-2">Loading groups...</p>
+              </div>
+            ) : filteredGroups.length === 0 ? (
+              <div className="text-center py-8">
+                <Hash className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 dark:text-slate-400">No groups found</p>
+                <button
+                  onClick={handleCreateGroup}
+                  className="btn-primary mt-4"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Group
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredGroups.map((group) => (
                 <div key={group.id} className="glass rounded-xl p-4 hover:bg-white/90 transition-all duration-300">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
@@ -621,7 +751,8 @@ export default function Social() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -858,10 +989,25 @@ export default function Social() {
               >
                 Cancel
               </button>
-              <button 
-                onClick={() => {
-                  toast.success('Friend request sent!')
-                  setShowAddFriendModal(false)
+              <button
+                onClick={async () => {
+                  const usernameInput = document.querySelector('input[placeholder="Enter username"]') as HTMLInputElement
+                  const username = usernameInput?.value?.trim()
+
+                  if (!username) {
+                    toast.error('Please enter a username')
+                    return
+                  }
+
+                  try {
+                    // For now, we'll need to get user ID by username - this would require an API endpoint
+                    // For demo purposes, we'll show success
+                    toast.success('Friend request sent!')
+                    setShowAddFriendModal(false)
+                  } catch (error) {
+                    console.error('Error sending friend request:', error)
+                    toast.error('Failed to send friend request')
+                  }
                 }}
                 className="flex-1 btn-primary"
               >
@@ -906,10 +1052,36 @@ export default function Social() {
               >
                 Cancel
               </button>
-              <button 
-                onClick={() => {
-                  toast.success('Group created successfully!')
-                  setShowCreateGroupModal(false)
+              <button
+                onClick={async () => {
+                  const nameInput = document.querySelector('input[placeholder="Group name"]') as HTMLInputElement
+                  const descriptionInput = document.querySelector('textarea[placeholder="Group description"]') as HTMLTextAreaElement
+                  const name = nameInput?.value?.trim()
+                  const description = descriptionInput?.value?.trim()
+
+                  if (!name || !description) {
+                    toast.error('Please fill in all fields')
+                    return
+                  }
+
+                  try {
+                    const response = await socialAPI.createGroup({
+                      name,
+                      description,
+                      icon: '🚌' // Default icon, could be made selectable
+                    })
+
+                    if (response.success) {
+                      await loadGroups()
+                      toast.success('Group created successfully!')
+                      setShowCreateGroupModal(false)
+                    } else {
+                      toast.error('Failed to create group')
+                    }
+                  } catch (error) {
+                    console.error('Error creating group:', error)
+                    toast.error('Failed to create group')
+                  }
                 }}
                 className="flex-1 btn-primary"
               >

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Mail, Lock, User, Eye, EyeOff, Bus, Train, Car, ArrowRight, Crown, Star } from 'lucide-react'
 import { useTransit } from '../contexts/TransitContext'
 import toast from 'react-hot-toast'
+import { authAPI } from '../services/api'
 
 const avatars = ['🚌', '🚇', '🚋', '🚎', '🚐', '🚗', '🚕', '🚙', '🚍', '🚏']
 
@@ -20,6 +21,12 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({})
 
   useEffect(() => {
     if (state.user && state.user.id) {
@@ -30,59 +37,150 @@ export default function Signup() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+    
+    // Clear error when typing
+    if (formErrors[name as keyof typeof formErrors]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }))
+    }
+  }
+  
+  const validateForm = () => {
+    const errors: {
+      name?: string;
+      email?: string;
+      password?: string;
+      confirmPassword?: string;
+    } = {}
+    
+    // Name validation
+    if (!formData.name) {
+      errors.name = 'Name is required'
+    }
+    
+    // Email validation
+    if (!formData.email) {
+      errors.email = 'Email is required'
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = 'Email is invalid'
+    }
+    
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'Password is required'
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters'
+    }
+    
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password'
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match'
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      toast.error('Please fill in all fields')
+    
+    // Validate form
+    if (!validateForm()) {
       return
     }
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match')
-      return
-    }
-    if (formData.password.length < 6) {
-      toast.error('Password must be at least 6 characters')
-      return
-    }
+    
     setIsLoading(true)
-    setTimeout(() => {
-      const newUser = {
-        id: Date.now().toString(),
+    
+    try {
+      // Prepare user data for API
+      const userData = {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        points: accountType === 'premium' ? 2000 : 1000, // Bonus points for new users
         avatar: selectedAvatar,
-        isTracking: false,
-        friends: [],
-        parentTracking: false,
-        level: 1,
-        experience: 0,
-        weeklyPoints: 0,
-        totalTrips: 0,
-        totalDistance: 0,
-        totalTime: 0,
-        joinDate: new Date(),
-        isPremium: accountType === 'premium',
-        premiumExpiry: accountType === 'premium' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : undefined, // 30 days for premium
-        premiumFeatures: {
-          extraXPGain: accountType === 'premium',
-          specialRewards: accountType === 'premium',
-          advancedTracking: accountType === 'premium',
-          prioritySupport: accountType === 'premium',
-        },
-        locationSharing: false,
-        friendRequests: true,
-        chatEnabled: true,
-        messageRequests: false,
+        isPremium: accountType === 'premium'
       }
-      dispatch({ type: 'CREATE_ACCOUNT', payload: newUser })
-      toast.success(accountType === 'premium' ? 'Premium account created! Welcome to Transit Rewards!' : 'Account created! Welcome to Transit Rewards!')
-      navigate('/')
+      
+      // Call API for registration
+      const response = await authAPI.register(userData)
+      
+      if (response.success) {
+        // Store token
+        localStorage.setItem('token', response.data.token)
+        
+        // Transform user data to match our app's structure
+        const newUser = {
+          id: response.data.user.id.toString(),
+          name: response.data.user.name,
+          email: response.data.user.email,
+          points: response.data.user.points || 0,
+          avatar: response.data.user.avatar || '👤',
+          isTracking: false,
+          friends: [],
+          parentTracking: false,
+          level: response.data.user.level || 1,
+          experience: response.data.user.experience || 0,
+          weeklyPoints: response.data.user.weekly_points || 0,
+          totalTrips: response.data.user.total_trips || 0,
+          totalDistance: response.data.user.total_distance || 0,
+          totalTime: response.data.user.total_time || 0,
+          joinDate: response.data.user.created_at ? new Date(response.data.user.created_at) : new Date(),
+          isPremium: response.data.user.is_premium || false,
+          premiumExpiry: response.data.user.premium_expiry ? new Date(response.data.user.premium_expiry) : undefined,
+          premiumFeatures: {
+            extraXPGain: response.data.user.is_premium || false,
+            specialRewards: response.data.user.is_premium || false,
+            advancedTracking: response.data.user.is_premium || false,
+            prioritySupport: response.data.user.is_premium || false,
+          },
+          locationSharing: response.data.user.location_sharing || false,
+          friendRequests: response.data.user.friend_requests !== undefined ? response.data.user.friend_requests : true,
+          chatEnabled: response.data.user.chat_enabled !== undefined ? response.data.user.chat_enabled : true,
+          messageRequests: response.data.user.message_requests || false,
+        }
+        
+        // Update context
+        dispatch({ type: 'SET_USER', payload: newUser })
+        
+        toast.success(accountType === 'premium' ? 
+          'Premium account created! Welcome to Transit Rewards!' : 
+          'Account created! Welcome to Transit Rewards!'
+        )
+        navigate('/')
+      } else {
+        toast.error(response.message || 'Registration failed')
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with an error
+        if (error.response.status === 409) {
+          toast.error('Email already in use. Please try a different email.')
+          setFormErrors(prev => ({
+            ...prev,
+            email: 'Email already in use'
+          }))
+        } else if (error.response.data && error.response.data.message) {
+          toast.error(error.response.data.message)
+        } else {
+          toast.error('Registration failed. Please try again.')
+        }
+      } else if (error.request) {
+        // No response received
+        toast.error('Server not responding. Please try again later.')
+      } else {
+        // Other errors
+        toast.error('Registration failed. Please try again.')
+      }
+    } finally {
       setIsLoading(false)
-    }, 1200)
+    }
   }
 
   // Don't render if already logged in
@@ -115,11 +213,14 @@ export default function Signup() {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
+                  className={`w-full pl-10 py-3 border ${formErrors.name ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift`}
                   placeholder="Enter your full name"
                   required
                 />
               </div>
+              {formErrors.name && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.name}</p>
+              )}
             </div>
             {/* Email Field */}
             <div className="stagger-3">
@@ -132,11 +233,14 @@ export default function Signup() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full pl-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift"
+                  className={`w-full pl-10 py-3 border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-500 text-black placeholder-gray-500 hover:border-primary-400 hover-lift`}
                   placeholder="Enter your email"
                   required
                 />
               </div>
+              {formErrors.email && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+              )}
             </div>
             {/* Password Field */}
             <div>
@@ -149,7 +253,7 @@ export default function Signup() {
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
+                  className={`w-full pl-10 pr-12 py-3 border ${formErrors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500`}
                   placeholder="Create a password"
                   required
                 />
@@ -161,6 +265,9 @@ export default function Signup() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {formErrors.password && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+              )}
             </div>
             {/* Confirm Password Field */}
             <div>
@@ -173,7 +280,7 @@ export default function Signup() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500"
+                  className={`w-full pl-10 pr-12 py-3 border ${formErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors text-black placeholder-gray-500`}
                   placeholder="Confirm your password"
                   required
                 />
@@ -185,6 +292,9 @@ export default function Signup() {
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {formErrors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.confirmPassword}</p>
+              )}
             </div>
             {/* Avatar Selection */}
             <div>
@@ -300,4 +410,4 @@ export default function Signup() {
       </div>
     </div>
   )
-} 
+}
